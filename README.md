@@ -73,6 +73,10 @@
 - `synth_compare.png`：original / clutter / texture / scene 四分支
 - `synth_opt.png`：scene 复现版 vs 优化版
 - `duck_compare.png`：真实素材（microduck 鸭子渲染）增强前后对比
+- `scene_aug_demo.mp4`：original | scene 增强，12 个随机 seed 扫描（15fps）
+- `branch_cycle.mp4`：original → clutter → texture → scene 四分支循环
+
+视频生成：`cd repro && python make_video.py`（依赖系统 ffmpeg；本机需设 `OPENBLAS_NUM_THREADS=1` 规避内存分配失败）。
 
 ---
 

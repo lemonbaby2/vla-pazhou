@@ -140,6 +140,19 @@
       <img src="img/duck_compare.png" alt="microduck baseline vs scene aug">
       <figcaption>左：鸭子渲染原图（已去白底融入桌面）；右：仅增强背景纹理与增加干扰物体，鸭子主体完整保留——对应赛题“背景变化下仍要识别目标”的鲁棒性需求。</figcaption>
     </figure>
+    <h3>4.4 可视化视频</h3>
+    <figure>
+      <video controls autoplay muted loop playsinline style="width:100%;border-radius:8px">
+        <source src="media/scene_aug_demo.mp4" type="video/mp4">
+      </video>
+      <figcaption>scene 增强随随机种子变化（12 个 seed 扫描）：左原图、右增强，展示同一场景下背景纹理与干扰物的多样性。</figcaption>
+    </figure>
+    <figure>
+      <video controls muted loop playsinline style="width:100%;border-radius:8px">
+        <source src="media/branch_cycle.mp4" type="video/mp4">
+      </video>
+      <figcaption>四分支循环：original → clutter → texture → scene，对应上游训练的 mixed augmentation 分支。</figcaption>
+    </figure>
   </section>
 
   <section>
