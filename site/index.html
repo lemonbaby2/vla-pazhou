@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LingBot-VLA2 场景增强复现与优化 · 琶洲 A 赛道</title>
+<style>
+  :root{--p:#4472C4;--d:#2F5597;--lt:#F4F7FC;--ln:#DDE5F2;--ink:#1A2333;--sub:#5A6B85;--g:#2E7D4F;--r:#B3261E;--am:#9C6500;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--lt);line-height:1.75;font-size:15.5px}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  .hero{background:linear-gradient(135deg,#2F5597,#4472C4 60%,#5B8AD9);color:#fff;padding:52px 0 42px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-70px;top:-70px;width:300px;height:300px;background:rgba(255,255,255,.08);border-radius:50%}
+  .hero h1{font-size:29px;line-height:1.3;font-weight:700}
+  .hero .sub{margin-top:12px;color:rgba(255,255,255,.88);max-width:780px}
+  .hero .meta{margin-top:16px;font-size:13px;color:rgba(255,255,255,.72)}
+  .tag{display:inline-block;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);padding:3px 10px;border-radius:999px;font-size:12.5px;margin:0 6px 6px 0}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:-28px 0 0}
+  .kpi{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px 18px;box-shadow:0 8px 26px rgba(47,85,151,.10)}
+  .kpi .v{font-size:24px;font-weight:750;color:var(--d)}
+  .kpi .v small{font-size:13px;color:var(--sub);font-weight:600}
+  .kpi .l{font-size:12.5px;color:var(--sub);margin-top:5px}
+  section{margin-top:42px}
+  h2{font-size:20px;color:var(--d);padding-bottom:10px;margin-bottom:16px;border-bottom:2px solid var(--ln);display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;background:var(--p);color:#fff;border-radius:7px;font-size:14px;flex:none}
+  h3{font-size:16px;margin:20px 0 8px;font-weight:650}
+  p{margin:8px 0;color:#2A3446}
+  ul{margin:8px 0 8px 22px}li{margin:5px 0}
+  .card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:20px 24px;box-shadow:0 8px 26px rgba(47,85,151,.08)}
+  .tbl{overflow-x:auto;border:1px solid var(--ln);border-radius:12px;background:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13.6px;min-width:520px}
+  thead th{background:var(--p);color:#fff;text-align:left;padding:10px 12px;font-size:13px;white-space:nowrap}
+  tbody td{padding:9px 12px;border-top:1px solid var(--ln);vertical-align:top}
+  tbody tr:nth-child(even){background:#F7FAFF}
+  td.c,th.c{text-align:center}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12.6px}
+  .b{display:inline-block;padding:1px 8px;border-radius:6px;font-size:12px;font-weight:600}
+  .bg{background:#E6F4EA;color:var(--g)}.br{background:#FCE8E6;color:var(--r)}.bb{background:#E8EFFB;color:var(--d)}.ba{background:#FFF3D6;color:var(--am)}
+  .note{border-left:4px solid var(--p);background:#EEF3FC;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  .warn{border-left:4px solid var(--r);background:#FDF0EE;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  .ok{border-left:4px solid var(--g);background:#EDF7F0;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  figure{margin:16px 0;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:12px}
+  figure img{width:100%;display:block;border-radius:8px}
+  figcaption{font-size:12.8px;color:var(--sub);margin-top:8px;text-align:center}
+  pre{background:#0F172A;color:#E2E8F0;padding:14px 16px;border-radius:10px;overflow-x:auto;font-size:12.6px;line-height:1.6;margin:10px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .foot{margin:52px 0 0;padding:24px 0 56px;border-top:1px solid var(--ln);color:var(--sub);font-size:12.5px;text-align:center}
+  @media(max-width:720px){.hero h1{font-size:22px}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div><span class="tag">LingBot-VLA 2</span><span class="tag">RoboTwin 场景增强</span><span class="tag">琶洲 A 赛道</span><span class="tag">DGX 实测</span></div>
+    <h1>LingBot-VLA2 场景增强：复现、优化与 DGX 实跑</h1>
+    <p class="sub">把 6B VLA 的「clutter / texture / scene」图像增广分支从 torch 依赖中剥离，做成可在普通 CPU 环境复现的确定性模块，并用 DGX 跑通、与本机做像素级对齐验证。</p>
+    <p class="meta">2026-11-02 · 鳌虾（WorkBuddy × DGX spark-a8d2）· 源码：jason-xzs/lingbot-vla-v2 @ feat/robotwin-scene-augmentation</p>
+  </div>
+</header>
+<main class="wrap">
+  <div class="kpis">
+    <div class="kpi"><div class="v">≈2×</div><div class="l">DGX 相比本机的单帧增强速度</div></div>
+    <div class="kpi"><div class="v">0.0000</div><div class="l">本机 vs DGX 输出像素平均差</div></div>
+    <div class="kpi"><div class="v">4</div><div class="l">复现分支：original/clutter/texture/scene</div></div>
+    <div class="kpi"><div class="v">98.2<small>%</small></div><div class="l">texture/scene 背景像素变化率</div></div>
+    <div class="kpi"><div class="v">True</div><div class="l">同 seed 确定性重放</div></div>
+  </div>
+
+  <section>
+    <h2><span class="n">1</span>先给结论</h2>
+    <div class="card">
+      <ul>
+        <li><b>仓库能复现，但不能“照着训练”</b>：这是 <b>6B 参数 VLA</b>，官方配置 <b>6×A800 80GB</b>、两阶段 5 万+1 万步。单台 GB10（128GB 统一内存）做完整微调不现实。</li>
+        <li><b>可复现的是核心算法</b>：场景增强分支（<span class="mono">scene_augmentation.py</span>）只依赖 numpy/torch/scipy，只改像素、不动 state/action/mask。我把它移植成 <b>纯 numpy 版</b>，DGX 系统环境即可跑。</li>
+        <li><b>DGX 已实跑并验证</b>：clutter 3.1ms、texture 10.5ms（本机 8.1 / 21.7ms），输出与本机 <b>像素级完全一致</b>。</li>
+        <li><b>与琶洲赛题的关系要说明白</b>：A 赛道是「二次开发实操」（现场离线、禁云端 AI、统一轮式人形平台），<b>不在现场跑 VLA 大模型</b>。本复现的价值是赛前的<b>感知鲁棒性数据增强</b>与仿真泛化研究，不是比赛现场程序。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>赛题要点（A 赛道 · 二次开发技术创新）</h2>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h3>任务</h3>
+          <p>轮式人形平台（轮式底盘 + 人形半身 + 双指夹爪），赛前夹稳空托盘 → 备餐台抓两份瓶装水装盘 → 端盘导航到客人桌 → 逐份上饮并语音通知。</p>
+          <h3>硬约束</h3>
+          <ul>
+            <li>现场<b>离线</b>，禁止联网求助或云端 AI</li>
+            <li>每队总赛时 <b>90 分钟</b>，正式运行 <b>5 分钟/轮</b>，最多两轮</li>
+            <li>提供导航/机械臂/夹爪/视觉/语音基础接口，<b>不提供整套赛题程序</b></li>
+          </ul>
+        </div>
+        <div>
+          <h3>评分</h3>
+          <ul>
+            <li>基础任务 100 分：场景操作 75 + 任务五 15 + 任务六 10</li>
+            <li>考核启动定位、抓取装盘、端盘配送、上饮通知、过程稳定性</li>
+          </ul>
+          <div class="warn"><b>关键判断：</b>这是传统机器人编程 + 视觉识别 + 任务调度，不是 VLA 推理赛道。VLA/场景增强只能作为赛前研究与数据工具。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>仓库分析</h2>
+    <div class="card">
+      <p>分支 <span class="mono">feat/robotwin-scene-augmentation</span> 基于 Robbyant/LingBot-VLA 2，训练用 RoboTwin 2.0 的 50 任务 × 50 clean 轨迹 = 2,500 episodes。</p>
+      <div class="tbl">
+        <table><thead><tr><th>项目</th><th>配置</th></tr></thead><tbody>
+          <tr><td>基座模型</td><td>lingbot-vla-v2-6b（6B 参数）</td></tr>
+          <tr><td>训练硬件</td><td>6 × A800 80GB</td></tr>
+          <tr><td>阶段一</td><td>0 → 50,000 步，全量微调，无图像增强</td></tr>
+          <tr><td>阶段二</td><td>50,000 → 60,000 步，启用场景增强 + seen 指令采样</td></tr>
+          <tr><td>权重合并</td><td>θ = 0.25×θ_50k + 0.75×θ_60k</td></tr>
+          <tr><td>增强权重</td><td>original 0.40 / clutter 0.35 / texture 0.10 / scene 0.15</td></tr>
+          <tr><td>环境</td><td>Python 3.12、PyTorch 2.8、CUDA 12.8、FlashAttention 2.8.3</td></tr>
+        </tbody></table>
+      </div>
+      <div class="note"><b>结论：</b>完整训练复现需要 6 卡 A800 级算力；单台 GB10 只能复现<b>算法模块</b>与推理/小规模验证。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>复现结果</h2>
+    <h3>4.1 四分支对比（合成场景，256×256）</h3>
+    <figure>
+      <img src="img/synth_compare.png" alt="original / clutter / texture / scene">
+      <figcaption>original 不变；clutter 粘贴额外物体（+2.6% 像素）；texture 替换桌面/墙纹理（98.2%）；scene 两者叠加。原有物体始终保留。</figcaption>
+    </figure>
+    <h3>4.2 优化前后（scene 分支）</h3>
+    <figure>
+      <img src="img/synth_opt.png" alt="scene repro vs optimized">
+      <figcaption>左：复现版（5 类纹理 + 硬边粘贴）；右：优化版（7 类纹理含木纹/大理石 + 2px 羽化边缘）。</figcaption>
+    </figure>
+    <h3>4.3 真实素材：microduck（“鸭子”）渲染图</h3>
+    <figure>
+      <img src="img/duck_compare.png" alt="microduck baseline vs scene aug">
+      <figcaption>左：鸭子渲染原图（已去白底融入桌面）；右：仅增强背景纹理与增加干扰物体，鸭子主体完整保留——对应赛题“背景变化下仍要识别目标”的鲁棒性需求。</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>优化点（全部保持“只改像素”不变式）</h2>
+    <div class="tbl">
+      <table><thead><tr><th class="c">编号</th><th>优化</th><th>效果</th></tr></thead><tbody>
+        <tr><td class="c">O1</td><td>去 torch：<span class="mono">_upsample</span> 用 numpy 双线性替代 <span class="mono">F.interpolate</span></td><td>系统 Python + numpy/scipy/PIL 即可跑，无需 6B 环境与 CUDA</td></tr>
+        <tr><td class="c">O2</td><td>clutter 边缘羽化（feather=2px）</td><td>消除 1px 硬拼接缝，粘贴更自然；feather=0 可完全复现原版</td></tr>
+        <tr><td class="c">O3</td><td>程序纹理 5 → 7 类（新增木纹、大理石）</td><td>背景多样性提升，降低对单一纹理过拟合</td></tr>
+        <tr><td class="c">O4</td><td>高斯斑点纹理向量化</td><td>去掉 python 循环，单帧 texture 分支稳定在 10ms 级</td></tr>
+      </tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>DGX 实测</h2>
+    <div class="tbl">
+      <table><thead><tr><th>分支</th><th class="c">本机 (Win, Py3.13)</th><th class="c">DGX (GB10, anaconda Py3.12)</th><th class="c">加速</th></tr></thead><tbody>
+        <tr><td>original</td><td class="c">7.3 ms</td><td class="c">4.7 ms</td><td class="c">≈1.6×</td></tr>
+        <tr><td>clutter</td><td class="c">8.1 ms</td><td class="c">3.1 ms</td><td class="c">≈2.6×</td></tr>
+        <tr><td>texture</td><td class="c">21.7 ms</td><td class="c">10.5 ms</td><td class="c">≈2.1×</td></tr>
+        <tr><td>scene</td><td class="c">20.2 ms</td><td class="c">9.6 ms</td><td class="c">≈2.1×</td></tr>
+      </tbody></table>
+    </div>
+    <div class="ok" style="margin-top:14px"><b>一致性验证：</b>三张输出图在本机与 DGX 上 <b>像素级完全一致</b>（identical=True，mean_abs_diff=0.0000），同 seed 确定性重放通过。</div>
+    <h3>复现命令</h3>
+    <pre>
+# 本机（Windows，WorkBuddy python）
+cd E:\vla-lingbot\repro
+python demo.py
+
+# DGX（anaconda，纯 CPU）
+ssh nvidia@100.97.27.19
+cd /home/nvidia/vla-lingbot/repro
+DUCK_IMG=./duck_src.png /home/nvidia/anaconda3/bin/python demo.py</pre>
+  </section>
+
+  <section>
+    <h2><span class="n">7</span>与琶洲 A 赛道的结合建议</h2>
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <h3>能直接用的</h3>
+          <ul>
+            <li><b>赛前数据增强</b>：把现场采集的备餐台/客人桌图像做 clutter/texture 增强，扩充视觉识别训练集，提升光照/背景变化下的抓取与定位鲁棒性。</li>
+            <li><b>仿真泛化验证</b>：用增强后的场景检验视觉模块在“多干扰物、换桌面纹理”下的稳定性。</li>
+            <li><b>离线可部署</b>：纯 numpy 版无重型依赖，可直接进赛前准备的离线环境。</li>
+          </ul>
+        </div>
+        <div>
+          <h3>不能指望的</h3>
+          <ul>
+            <li>现场不跑 VLA 大模型（赛题禁止联网/云端 AI，且平台只给基础接口）。</li>
+            <li>不要把这套 6B 训练流程当成比赛程序——它解决的是“感知数据多样性”，不是“端盘任务调度”。</li>
+          </ul>
+          <div class="note">务实路线：赛题主线用传统导航+视觉+状态机；VLA/场景增强放在赛前数据与鲁棒性研究，形成“算法研究 + 工程落地”的双线叙事。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    源码：github.com/jason-xzs/lingbot-vla-v2（feat/robotwin-scene-augmentation）· 本页复现代码与效果图为本地生成<br>
+    DGX：spark-a8d2（GB10 / 128GB / Tailscale 100.97.27.19）· 2026-11-02 · 鳌虾（WorkBuddy）
+  </div>
+</main>
+</body>
+</html>
